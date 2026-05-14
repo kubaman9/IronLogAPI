@@ -17,24 +17,15 @@ const connectDB = async () => {
     isConnected = true;
 };
 
-app.use(cors({
+const corsOptions = {
     origin: ['https://kubaman9.github.io', 'http://localhost:5173'],
     methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    optionsSuccessStatus: 200
+};
 
-app.options(/.*/, cors({
-    origin: ['https://kubaman9.github.io', 'http://localhost:5173'],
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
-app.use((req, res, next) => {
-    if (req.method === 'OPTIONS') {
-        return res.sendStatus(200);
-    }
-    next();
-});
+app.options('*', cors(corsOptions));
+app.use(cors(corsOptions));
 
 app.use(async (req, res, next) => {
     if (req.method === 'OPTIONS') {
