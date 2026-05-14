@@ -3,6 +3,7 @@ const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
 const { graphqlHTTP } = require('express-graphql');
+const cors = require('cors');
 const mongoose = require('mongoose');
 const graphQlSchema = require('./graphQl/Schema/index');
 const graphQlResolvers = require('./graphQl/Resolvers/index');
@@ -16,10 +17,19 @@ const connectDB = async () => {
     isConnected = true;
 };
 
+app.use(cors({
+    origin: ['https://kubaman9.github.io', 'http://localhost:5173'],
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+app.options(/.*/, cors({
+    origin: ['https://kubaman9.github.io', 'http://localhost:5173'],
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST,GET,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     if (req.method === 'OPTIONS') {
         return res.sendStatus(200);
     }
@@ -27,6 +37,9 @@ app.use((req, res, next) => {
 });
 
 app.use(async (req, res, next) => {
+    if (req.method === 'OPTIONS') {
+        return next();
+    }
     await connectDB();
     next();
 });
