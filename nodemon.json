@@ -1,0 +1,7 @@
+{
+    "env": {
+        "MONGO_USER": "kubaman1000_db_user",
+        "MONGO_PASSWORD": "lSVkLmCoiFoLLwbc",
+        "MONGO_DB": "LiftsDB"
+    }
+}
