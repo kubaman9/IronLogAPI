@@ -16,13 +16,6 @@ const connectDB = async () => {
     isConnected = true;
 };
 
-app.use(async (req, res, next) => {
-    await connectDB();
-    next();
-});
-
-app.use(isAuth);
-
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST,GET,OPTIONS');
@@ -32,6 +25,13 @@ app.use((req, res, next) => {
     }
     next();
 });
+
+app.use(async (req, res, next) => {
+    await connectDB();
+    next();
+});
+
+app.use(isAuth);
 
 app.use(bodyParser.json());
 
