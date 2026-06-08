@@ -2,6 +2,12 @@ const { buildSchema } = require('graphql');
 
 module.exports = buildSchema(`
     
+    type Session {
+        weight: Int!
+        date: String!
+        seconds: Int!
+    }
+
     type Lift {
         _id: ID!
         name: String!
@@ -11,6 +17,7 @@ module.exports = buildSchema(`
         type: String!
         creator: User!
         pastWeights: [Int!]
+        sessions: [Session!]
     }
 
     type User {
@@ -51,6 +58,7 @@ module.exports = buildSchema(`
         createUser(userInput: UserInput): User
         deleteLift(liftId: ID!): Lift
         editLift(liftId: ID!, liftInput: LiftInput): Lift
+        logSession(liftId: ID!, weight: Int!, seconds: Int): Lift
     }
 
     schema {
