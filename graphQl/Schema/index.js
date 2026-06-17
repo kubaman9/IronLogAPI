@@ -33,6 +33,22 @@ module.exports = buildSchema(`
         tokenExpiration: Int!
     }
 
+    type LeaderEntry {
+        username: String!
+        score: Int!
+    }
+
+    type Leaderboard {
+        total: Int!
+        rank: Int!
+        percentile: Int!
+        score: Int!
+        ranked: Boolean!
+        sessionsLogged: Int!
+        sessionsNeeded: Int!
+        top: [LeaderEntry!]!
+    }
+
     input UserInput {
         email: String!
         password: String!
@@ -50,6 +66,7 @@ module.exports = buildSchema(`
         lifts: [Lift!]!
         userLifts: [Lift!]!
         User: [User!]!
+        leaderboard: Leaderboard!
         login(email: String!, password: String!): AuthData!
     }
 
