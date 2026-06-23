@@ -76,7 +76,7 @@ module.exports = buildSchema(`
         deleteLift(liftId: ID!): Lift
         editLift(liftId: ID!, liftInput: LiftInput): Lift
         logSession(liftId: ID!, weight: Int!, seconds: Int): Lift
-        parseWorkoutNotes(text: String!): String!
+        parseWorkoutNotes(text: String!, library: [String!]): String!
     }
 
     schema {

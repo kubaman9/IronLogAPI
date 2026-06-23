@@ -14,9 +14,10 @@ const LIFT_SCHEMA = {
                     type: { type: 'STRING', enum: MUSCLE_TYPES },
                     weight: { type: 'INTEGER' },
                     sets: { type: 'INTEGER' },
-                    reps: { type: 'INTEGER' }
+                    reps: { type: 'INTEGER' },
+                    duplicate: { type: 'BOOLEAN' }
                 },
-                required: ['name', 'type', 'weight', 'sets', 'reps']
+                required: ['name', 'type', 'weight', 'sets', 'reps', 'duplicate']
             }
         }
     },
@@ -36,11 +37,18 @@ ABUNDANCE OF INFO — ignore noise that is not a lift: dates, day labels ("Push 
 
 ABSENCE OF INFO — fill sensible defaults: if sets unknown use 3; if reps unknown use 8; if a rep range is given use the higher number; if weight is unknown or not applicable use 0. If multiple sets list different reps (e.g. "8,8,6"), use the typical/first rep count and the number of sets listed.
 
+DEDUPE AGAINST THE EXISTING LIBRARY:
+- A list of the exercises already in the user's library may be provided.
+- If an imported exercise is the SAME movement as one already in the library — judged by meaning, ignoring case, spelling, abbreviations, plural/singular, word order, or equipment shorthand (e.g. "OHP" = "Overhead Press", "DB press" = "Dumbbell Bench Press", "curls" = "Bicep Curl") — then reuse that EXISTING library name VERBATIM and set "duplicate": true.
+- Otherwise use your own clean name and set "duplicate": false.
+- If no library is provided, set "duplicate": false for every lift.
+
 OUTPUT:
 - One entry per distinct exercise. Merge obvious duplicates of the same movement.
-- name: clean, title-cased exercise name. No weight/sets/reps text inside the name.
+- name: clean, title-cased exercise name (or the existing library name for duplicates). No weight/sets/reps text inside the name.
 - type: the muscle group it primarily trains, from the allowed list ONLY.
 - weight, sets, reps: integers per the rules above.
+- duplicate: boolean per the dedupe rules above.
 - If the text contains no recognizable lifts at all, return an empty list.`;
 
 // Free via Google AI Studio (aistudio.google.com/app/apikey). Each model has its
@@ -48,7 +56,7 @@ OUTPUT:
 // with a single model via GEMINI_MODEL.
 const MODELS = process.env.GEMINI_MODEL
     ? [process.env.GEMINI_MODEL]
-    : ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite', 'gemini-1.5-flash'];
+    : ['gemini-2.5-flash', 'gemini-1.5-flash'];
 
 module.exports = {
     // Sends the user's pasted notes to Gemini and returns a JSON string of parsed
@@ -68,9 +76,16 @@ module.exports = {
             throw new Error('Import is not configured on the server yet.');
         }
 
+        // Existing library names — appended to the user turn so the model can
+        // dedupe semantically and reuse the user's own naming for matches.
+        const library = Array.isArray(args.library) ? args.library.filter(Boolean) : [];
+        const libBlock = library.length
+            ? `\n\n--- EXISTING LIBRARY (already saved; reuse these names verbatim for duplicates) ---\n${library.map(n => '- ' + n).join('\n')}`
+            : '\n\n--- EXISTING LIBRARY is empty; set duplicate=false for every lift. ---';
+
         const body = JSON.stringify({
             systemInstruction: { parts: [{ text: SYSTEM }] },
-            contents: [{ role: 'user', parts: [{ text }] }],
+            contents: [{ role: 'user', parts: [{ text: text + libBlock }] }],
             generationConfig: {
                 temperature: 0,
                 responseMimeType: 'application/json',
