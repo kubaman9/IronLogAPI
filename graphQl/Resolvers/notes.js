@@ -24,39 +24,21 @@ const LIFT_SCHEMA = {
     required: ['lifts']
 };
 
-const SYSTEM = `You read a lifter's free-form workout notes — copied from any notes app, in ANY format — and convert them into clean, structured lifts for a fitness app. The notes may be messy, inconsistent, abbreviated, or richly detailed. Extract every distinct resistance exercise you can find.
-
-ROBUST PARSING — handle all of these:
-- Any delimiter or layout: one per line, bullets (-, *, •), numbered lists, commas, semicolons, slashes, tables, or several exercises on one line.
-- Any weight/sets/reps notation and order: "Bench 185x5", "5x185", "3x8 @135", "135lb 3 sets of 8", "3 sets 8-10 reps 60kg", "100 4,4,3", "bw+25", "2 plates", "DB 70s 4x12". Figure out which number is weight vs sets vs reps from context and units.
-- Mixed units: convert kg to pounds (1 kg = 2.2 lb, round to nearest integer). Numbers with "lb"/"lbs"/"#" are already pounds.
-- Bodyweight moves (pull-ups, dips, push-ups, plank, "BW"): weight = 0 unless added weight is noted (then use the added weight).
-- Abbreviations and shorthand: expand to clean names ("OHP" -> "Overhead Press", "RDL" -> "Romanian Deadlift", "DB" -> "Dumbbell", "BB" -> "Barbell", "incl" -> "Incline", "ext" -> "Extension").
-
-ABUNDANCE OF INFO — ignore noise that is not a lift: dates, day labels ("Push Day", "Leg Day", "Monday"), RPE, tempo, rest times, "warmup"/"working set" labels, supersets/dropset annotations, bodyweight log, cardio, stretches, and personal notes. Keep only the resistance exercises.
-
-ABSENCE OF INFO — fill sensible defaults: if sets unknown use 3; if reps unknown use 8; if a rep range is given use the higher number; if weight is unknown or not applicable use 0. If multiple sets list different reps (e.g. "8,8,6"), use the typical/first rep count and the number of sets listed.
-
-DEDUPE AGAINST THE EXISTING LIBRARY:
-- A list of the exercises already in the user's library may be provided.
-- If an imported exercise is the SAME movement as one already in the library — judged by meaning, ignoring case, spelling, abbreviations, plural/singular, word order, or equipment shorthand (e.g. "OHP" = "Overhead Press", "DB press" = "Dumbbell Bench Press", "curls" = "Bicep Curl") — then reuse that EXISTING library name VERBATIM and set "duplicate": true.
-- Otherwise use your own clean name and set "duplicate": false.
-- If no library is provided, set "duplicate": false for every lift.
-
-OUTPUT:
-- One entry per distinct exercise. Merge obvious duplicates of the same movement.
-- name: clean, title-cased exercise name (or the existing library name for duplicates). No weight/sets/reps text inside the name.
-- type: the muscle group it primarily trains, from the allowed list ONLY.
-- weight, sets, reps: integers per the rules above.
-- duplicate: boolean per the dedupe rules above.
-- If the text contains no recognizable lifts at all, return an empty list.`;
+const SYSTEM = `Convert messy free-form workout notes (any format/delimiters) into structured lifts. Extract every distinct resistance exercise.
+- name: clean title-cased name, no numbers. Expand abbreviations (DB=Dumbbell, BB=Barbell, Mch=Machine, OHP=Overhead Press, RDL=Romanian Deadlift, ext=Extension).
+- type: primary muscle group (allowed values only).
+- weight: integer pounds. Convert kg→lb (×2.2, round). Bodyweight or none = 0. If several weights are listed for one exercise, use the highest.
+- sets/reps: integers. Rep range → higher. Unknown → sets 3, reps 8.
+- Ignore non-lifts: dates, day labels, RPE, tempo, rest, cardio, stretches, personal notes.
+- duplicate: if an exercise already exists in the provided library (match by meaning, ignoring spelling/abbreviation/word-order), reuse that library name VERBATIM and set true; else false. Empty/absent library → always false.
+Return an empty list if there are no lifts.`;
 
 // Free via Google AI Studio (aistudio.google.com/app/apikey). Each model has its
-// own free-tier quota bucket, so we try a chain until one has capacity. Override
-// with a single model via GEMINI_MODEL.
+// OWN free-tier quota bucket, so on a 429 we instantly try the next one (no
+// waiting — stays within the serverless time budget). Override with GEMINI_MODEL.
 const MODELS = process.env.GEMINI_MODEL
     ? [process.env.GEMINI_MODEL]
-    : ['gemini-2.5-flash', 'gemini-1.5-flash'];
+    : ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-1.5-flash-8b'];
 
 module.exports = {
     // Sends the user's pasted notes to Gemini and returns a JSON string of parsed
