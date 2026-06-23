@@ -87,8 +87,9 @@ module.exports = {
 
         const data = await res.json().catch(() => null);
         if (!res.ok) {
-            console.error('parseWorkoutNotes Gemini:', res.status, data && data.error && data.error.message);
-            throw new Error('Could not read those notes. Try again.');
+            const detail = data && data.error && data.error.message;
+            console.error('parseWorkoutNotes Gemini:', res.status, detail);
+            throw new Error('GEMINI_DEBUG ' + res.status + ': ' + (detail || 'unknown'));
         }
 
         // responseSchema guarantees the text is schema-valid JSON; pass it through.
