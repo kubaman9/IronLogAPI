@@ -111,6 +111,6 @@ module.exports = {
         }
 
         console.error('parseWorkoutNotes exhausted models:', lastDetail);
-        throw new Error('GEMINI_DEBUG all-failed: ' + lastDetail);
+        throw new Error('Could not read those notes. Try again.');
     }
 };
