@@ -83,24 +83,34 @@ module.exports = {
             ? `\n\n--- EXISTING LIBRARY (already saved; reuse these names verbatim for duplicates) ---\n${library.map(n => '- ' + n).join('\n')}`
             : '\n\n--- EXISTING LIBRARY is empty; set duplicate=false for every lift. ---';
 
-        const body = JSON.stringify({
-            systemInstruction: { parts: [{ text: SYSTEM }] },
-            contents: [{ role: 'user', parts: [{ text: text + libBlock }] }],
-            generationConfig: {
-                temperature: 0,
-                responseMimeType: 'application/json',
-                responseSchema: LIFT_SCHEMA
-            }
-        });
+        const userText = text + libBlock;
 
         let lastDetail = 'unknown';
         for (const model of MODELS) {
+            // Per-model config: give plenty of output room, and on Gemini 2.5
+            // disable the thinking budget so it can't starve the JSON output on a
+            // long note (2.5 spends output tokens "thinking" by default).
+            const generationConfig = {
+                temperature: 0,
+                maxOutputTokens: 8192,
+                responseMimeType: 'application/json',
+                responseSchema: LIFT_SCHEMA
+            };
+            if (model.startsWith('gemini-2.5')) {
+                generationConfig.thinkingConfig = { thinkingBudget: 0 };
+            }
+            const body = JSON.stringify({
+                systemInstruction: { parts: [{ text: SYSTEM }] },
+                contents: [{ role: 'user', parts: [{ text: userText }] }],
+                generationConfig
+            });
+
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
             let res;
             try {
                 res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
             } catch (err) {
-                lastDetail = err.message;
+                lastDetail = 'fetch ' + err.message;
                 console.error('parseWorkoutNotes fetch:', model, err.message);
                 continue; // network blip — try the next model
             }
@@ -114,18 +124,15 @@ module.exports = {
                 break; // 400/403 etc. won't be fixed by another model
             }
 
-            // responseSchema guarantees the text is schema-valid JSON; pass it through.
-            const out = data
-                && data.candidates
-                && data.candidates[0]
-                && data.candidates[0].content
-                && data.candidates[0].content.parts
-                && data.candidates[0].content.parts[0]
-                && data.candidates[0].content.parts[0].text;
-            return out || JSON.stringify({ lifts: [] });
+            const cand = data && data.candidates && data.candidates[0];
+            const out = cand && cand.content && cand.content.parts && cand.content.parts[0] && cand.content.parts[0].text;
+            if (out) return out;
+            // 200 but no text — truncated (MAX_TOKENS) or safety block. Record and try next model.
+            lastDetail = '200 finishReason=' + (cand && cand.finishReason || (data && data.promptFeedback && data.promptFeedback.blockReason) || 'empty');
+            console.error('parseWorkoutNotes empty:', model, lastDetail);
         }
 
         console.error('parseWorkoutNotes exhausted models:', lastDetail);
-        throw new Error('Could not read those notes. Try again.');
+        throw new Error('GEMINI_DEBUG ' + lastDetail);
     }
 };
