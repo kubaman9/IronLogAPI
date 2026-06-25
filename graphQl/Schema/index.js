@@ -62,12 +62,44 @@ module.exports = buildSchema(`
         type: String!
     }
 
+    type BodyEntry { date: String! weight: Float! }
+    type UserBody { entries: [BodyEntry!]! goal: Float }
+
+    type WorkoutLogLift { name: String! type: String! }
+    type WorkoutLog {
+        date: String!
+        mode: String!
+        deload: Boolean
+        pushIt: Boolean
+        durationSec: Int!
+        doneSets: Int!
+        totalSets: Int!
+        volume: Int!
+        lifts: [WorkoutLogLift!]!
+        prs: [String!]!
+    }
+    input WorkoutLogLiftInput { name: String! type: String! }
+    input WorkoutLogInput {
+        date: String!
+        mode: String!
+        deload: Boolean
+        pushIt: Boolean
+        durationSec: Int!
+        doneSets: Int!
+        totalSets: Int!
+        volume: Int!
+        lifts: [WorkoutLogLiftInput!]!
+        prs: [String!]!
+    }
+
     type RootQuery {
         lifts: [Lift!]!
         userLifts: [Lift!]!
         User: [User!]!
         leaderboard: Leaderboard!
         login(email: String!, password: String!): AuthData!
+        userBody: UserBody!
+        workoutHistory: [WorkoutLog!]!
     }
 
     type RootMutation {
@@ -77,6 +109,10 @@ module.exports = buildSchema(`
         editLift(liftId: ID!, liftInput: LiftInput): Lift
         logSession(liftId: ID!, weight: Int!, seconds: Int): Lift
         parseWorkoutNotes(text: String!, library: [String!]): String!
+        logBodyweight(weight: Float!, date: String): UserBody!
+        removeBodyweight(date: String!): UserBody!
+        setBodyweightGoal(goal: Float): UserBody!
+        logWorkout(workout: WorkoutLogInput!): [WorkoutLog!]!
     }
 
     schema {
