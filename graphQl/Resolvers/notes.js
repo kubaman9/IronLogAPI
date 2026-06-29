@@ -1,5 +1,5 @@
 // Categories the app understands — the model must map every lift to one of these.
-const MUSCLE_TYPES = ['Chest', 'Tricept', 'Bicept', 'Shoulders', 'Back', 'Abbs', 'Legs', 'Forearms'];
+const MUSCLE_TYPES = ['Chest', 'Tricept', 'Bicept', 'Shoulders', 'Back', 'Abbs', 'Legs', 'Forearms', 'Cardio'];
 
 // Gemini uses an OpenAPI-subset schema with UPPERCASE type names.
 const LIFT_SCHEMA = {
@@ -29,7 +29,8 @@ const SYSTEM = `Convert messy free-form workout notes (any format/delimiters) in
 - type: primary muscle group (allowed values only).
 - weight: integer pounds. Convert kg→lb (×2.2, round). Bodyweight or none = 0. If several weights are listed for one exercise, use the highest.
 - sets/reps: integers. Rep range → higher. Unknown → sets 3, reps 8.
-- Ignore non-lifts: dates, day labels, RPE, tempo, rest, cardio, stretches, personal notes.
+- Cardio (running, jogging, cycling, rowing, elliptical, treadmill, stair climber, swimming, walking, etc.): type "Cardio", sets 1, reps 1, weight 0. Include these (do NOT skip them).
+- Ignore genuinely non-exercise lines: dates, day labels, RPE, tempo, rest times, stretches, personal notes.
 - duplicate: if an exercise already exists in the provided library (match by meaning, ignoring spelling/abbreviation/word-order), reuse that library name VERBATIM and set true; else false. Empty/absent library → always false.
 Return an empty list if there are no lifts.`;
 
